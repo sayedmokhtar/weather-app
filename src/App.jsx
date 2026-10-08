@@ -3,68 +3,38 @@ import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Cloud from "@mui/icons-material/Cloud";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 // end of material ui
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import moment from "moment/min/moment-with-locales";
-const api_key = import.meta.env.VITE_API_KEY;
+
+import { useSelector, useDispatch } from "react-redux";
+import { fetchWeather } from "./weatherApiSlice";
 function App() {
+  const isLoading = useSelector((state) => {
+    return state.weather.isLoading;
+  });
+  const temp = useSelector((state) => {
+    return state.weather.weather;
+  });
+  const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
   const [dateAndTime, setDateAndTime] = useState("");
   const [locale, setLocale] = useState("en");
-  const [temp, setTemp] = useState({
-    number: null,
-    description: "",
-    max: null,
-    min: null,
-  });
   const direction = locale == "en" ? "ltr" : "rtl";
+
+  useEffect(() => {
+    dispatch(fetchWeather());
+  }, []);
+
   useEffect(() => {
     const intervalID = setInterval(() => {
       setDateAndTime(moment().format("dddd D MMMM YYYY, h:mm a "));
     }, 1000);
     return () => {
       clearInterval(intervalID);
-    };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    axios
-      .get(
-        `https://dataservice.accuweather.com/forecasts/v1/daily/5day/127164`,
-        {
-          headers: {
-            Authorization: `Bearer ${api_key}`,
-          },
-          signal: controller.signal,
-        },
-      )
-      .then((respones) => {
-        const max = (
-          (respones.data.DailyForecasts[0].Temperature.Maximum.Value - 32) *
-          (5 / 9)
-        ).toFixed(1);
-
-        const min = (
-          (respones.data.DailyForecasts[0].Temperature.Minimum.Value - 32) *
-          (5 / 9)
-        ).toFixed(1);
-        const des = respones.data.DailyForecasts[0].Day.PrecipitationIntensity;
-        setTemp({
-          min: min,
-          max: max,
-          description: des,
-          number: max,
-        });
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-    return () => {
-      controller.abort();
     };
   }, []);
   //========== event handlers
@@ -120,6 +90,12 @@ function App() {
                 </div>
                 {/* temp */}
                 <div className="text-white">
+                  {isLoading ? (
+                    <CircularProgress style={{ color: "white" }} />
+                  ) : (
+                    ""
+                  )}
+
                   <Typography
                     variant="h4"
                     gutterBottom
